@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Threads 爆款鉤子生成器 // PROTOCOL: AK47</title>
+    <title>Threads 爆款鉤子生成器 // PROTOCOL: AUTO-DISCOVERY</title>
     <!-- CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -21,7 +21,7 @@
 
     <div class="max-w-md w-full bg-black bg-opacity-90 p-6 rounded-lg cyber-border relative z-0">
         <h1 class="text-2xl font-bold text-center mb-2 tracking-widest text-green-300">VIRAL HOOK GEN</h1>
-        <p class="text-xs text-center text-green-700 mb-6">SYSTEM STATUS: AK-47 MODE // VER 9.0</p>
+        <p class="text-xs text-center text-green-700 mb-6">SYSTEM STATUS: AUTO-DISCOVERY // VER 10.0</p>
 
         <div class="space-y-4">
             <div>
@@ -44,26 +44,64 @@
         </div>
 
         <div id="loadingBar" class="hidden mt-4 relative z-10">
-            <p class="text-xs text-center mb-1 animate-pulse">CONNECTING TO GEMINI PRO...</p>
+            <p id="loadingText" class="text-xs text-center mb-1 animate-pulse">SEARCHING FOR AVAILABLE MODELS...</p>
             <div class="loading-scan"></div>
         </div>
         <div id="outputArea" class="mt-6 space-y-3 hidden relative z-10"></div>
         
         <div class="mt-8 pt-4 border-t border-green-900 text-center text-xs text-green-600 relative z-10">
-            <p>POWERED BY GEMINI-PRO (STABLE)</p>
+            <p id="modelInfoText">WAITING FOR COMMAND</p>
         </div>
     </div>
 
     <script>
-        // ✅ 使用您 avavav 專案的鑰匙
         const API_KEY = 'AIzaSyBfxZMyvRbEJN-OcvHRg0OpvkbDhEAruRU'; 
         
+        // 🔍 自動偵查功能：找出帳號裡到底有哪些模型是活著的
+        async function findWorkingModel() {
+            try {
+                const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`;
+                const response = await fetch(listUrl);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || "無法取得模型列表");
+                }
+
+                if (!data.models) {
+                    throw new Error("您的帳號雖然開啟了 API，但模型列表是空的 (Empty Inventory)。");
+                }
+
+                // 篩選出支援 'generateContent' 的模型
+                const viableModel = data.models.find(m => 
+                    m.supportedGenerationMethods && 
+                    m.supportedGenerationMethods.includes("generateContent") &&
+                    (m.name.includes("gemini") || m.name.includes("flash") || m.name.includes("pro"))
+                );
+
+                if (viableModel) {
+                    // 找到了！回傳模型名稱 (把前面的 models/ 去掉，或者保留，視 API 需求)
+                    // Google API 通常需要完整的 models/gemini-xxx
+                    return viableModel.name; 
+                } else {
+                    throw new Error("找不到任何支援文字生成的 Gemini 模型。");
+                }
+
+            } catch (e) {
+                console.error("Auto-discovery failed:", e);
+                // 如果偵查失敗，還是回傳一個備用的
+                return "models/gemini-1.5-flash"; 
+            }
+        }
+
         async function fireNow() {
             const generateBtn = document.getElementById('generateBtn');
             const topicInput = document.getElementById('topicInput');
             const toneSelect = document.getElementById('toneSelect');
             const outputArea = document.getElementById('outputArea');
             const loadingBar = document.getElementById('loadingBar');
+            const loadingText = document.getElementById('loadingText');
+            const modelInfoText = document.getElementById('modelInfoText');
 
             const topic = topicInput.value.trim();
             const tone = toneSelect.value;
@@ -77,13 +115,28 @@
             outputArea.classList.add('hidden');
             outputArea.innerHTML = '';
             generateBtn.disabled = true;
-            generateBtn.innerText = "GENERATING...";
+            generateBtn.innerText = "SCANNING...";
 
             try {
+                // 1. 先找出可用模型
+                loadingText.innerText = "AUTO-DETECTING MODELS...";
+                let modelName = await findWorkingModel();
+                
+                // 修正模型名稱格式 (有些回傳帶有 models/ 有些沒有，統一處理)
+                if (!modelName.startsWith("models/")) {
+                    modelName = `models/${modelName}`;
+                }
+                
+                console.log(`🎯 Locked on target: ${modelName}`);
+                modelInfoText.innerText = `LOCKED: ${modelName.replace('models/', '').toUpperCase()}`;
+                
+                loadingText.innerText = "GENERATING CONTENT...";
+                generateBtn.innerText = "GENERATING...";
+
+                // 2. 使用該模型發射
                 const prompt = `你是一個Threads爆款文案專家。請針對主題「${topic}」，用「${tone}」的語氣，生成 3 個極具吸引力、讓人忍不住點開全文的「第一句話」(Hook)。繁體中文，不超過40字，反常識。直接給3句，不要編號。`;
                 
-                // ⚠️ 戰術變更：切換回 gemini-pro，這是最穩定的舊版模型，保證存在
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${API_KEY}`;
                 
                 const data = {
                     contents: [{
@@ -101,19 +154,15 @@
 
                 if (!response.ok) {
                     let msg = json.error?.message || "Unknown Error";
-                    // 如果連 AK-47 都卡彈，那就是鑰匙本身被鎖了
-                    if (msg.includes("403") || msg.includes("permission")) {
-                        throw new Error("🚨 鑰匙被鎖：請去 Google Cloud Console > 憑證，檢查這把 Key 是否被設定了「限制」(Restrictions)。必須選「不設限」。");
-                    }
+                    if (msg.includes("404")) throw new Error(`模型 ${modelName} 回報 404 (不可用)。這代表帳號異常。`);
                     throw new Error(msg);
                 }
 
-                // 安全解析
                 let text = "";
                 if (json.candidates && json.candidates[0] && json.candidates[0].content) {
                     text = json.candidates[0].content.parts[0].text;
                 } else {
-                    throw new Error("模型回傳了空內容，請重試。");
+                    throw new Error("模型已回應但內容為空。");
                 }
 
                 const hooks = text.split('\n').filter(line => line.trim() !== '');
@@ -130,7 +179,8 @@
                 console.error(error);
                 outputArea.classList.remove('hidden');
                 outputArea.innerHTML = `<div class="text-red-500 text-center text-xs p-2 border border-red-500">
-                    ${error.message}
+                    💥 嚴重錯誤：${error.message}<br>
+                    (若連自動偵測都失敗，代表此 Google Cloud Project 帳號完全沒有模型使用權，建議放棄此專案，借用別人的 Key 或等待 24 小時後重試。)
                 </div>`;
             } finally {
                 loadingBar.classList.add('hidden');
