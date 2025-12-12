@@ -85,10 +85,11 @@
     <script type="module">
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // ⚠️ 把這裡換成你的 API KEY
+        // ✅ API KEY 已填入
         const API_KEY = 'AIzaSyB1U0Lgmu37CbBs990Fueu2Hn7tak3Mcq8'; 
 
         const genAI = new GoogleGenerativeAI(API_KEY);
+        // 使用 gemini-1.5-flash 模型，速度快且免費額度高
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const generateBtn = document.getElementById('generateBtn');
@@ -114,25 +115,33 @@
             generateBtn.innerText = "CALCULATING...";
 
             try {
-                const prompt = `你是一個Threads爆款文案專家。請針對主題「${topic}」，用「${tone}」的語氣，生成 3 個極具吸引力、讓人忍不住點開全文的「第一句話」(Hook)。
+                // 調整 Prompt 以獲得更好的 Threads 風格
+                const prompt = `你是一個 Threads 社交平台爆款文案專家。
+                請針對主題「${topic}」，用「${tone}」的語氣，生成 3 個極具吸引力、讓人忍不住點開全文的「第一句話」(Hook)。
                 
-                要求：
-                1. 繁體中文。
+                特徵要求：
+                1. 繁體中文（台灣用語）。
                 2. 簡短有力，不超過 40 字。
-                3. 直接給我 3 個句子，不要有編號，每句一行。
-                4. 不要包含引號。`;
+                3. 有話顯得沒說完，或者反常識，引發好奇心。
+                4. 直接給我 3 個句子，每句一行，不要有 1. 2. 3. 編號，不要有引號。`;
 
                 const result = await model.generateContent(prompt);
                 const response = await result.response;
                 const text = response.text();
                 
+                // 處理回傳文字，確保格式正確
                 const hooks = text.split('\n').filter(line => line.trim() !== '');
 
                 renderHooks(hooks);
 
             } catch (error) {
-                console.error(error);
-                outputArea.innerHTML = `<div class="text-red-500 border border-red-500 p-2 text-center text-xs">SYSTEM FAILURE: API QUOTA EXCEEDED OR KEY INVALID</div>`;
+                console.error("API Error:", error);
+                // 錯誤訊息顯示
+                outputArea.innerHTML = `
+                    <div class="text-red-500 border border-red-500 p-2 text-center text-xs">
+                        SYSTEM FAILURE: API ERROR<br>
+                        (可能是 Key 額度不足或網路問題)
+                    </div>`;
                 outputArea.classList.remove('hidden');
             } finally {
                 loadingBar.classList.add('hidden');
@@ -149,7 +158,7 @@
                 div.className = "bg-green-900 bg-opacity-20 border border-green-800 p-3 rounded flex justify-between items-center group hover:bg-opacity-40 transition-all";
                 
                 div.innerHTML = `
-                    <span class="text-sm flex-1 mr-2">${hook}</span>
+                    <span class="text-sm flex-1 mr-2 tracking-wide">${hook}</span>
                     <button class="copy-btn text-xs bg-black border border-green-600 px-2 py-1 rounded hover:bg-green-600 hover:text-black transition-colors" onclick="copyToClipboard(this, '${hook.replace(/'/g, "\\'")}')">
                         COPY
                     </button>
