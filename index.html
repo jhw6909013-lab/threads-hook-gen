@@ -112,3 +112,13 @@
                 }
 
                 outputArea.innerHTML = `<div class="text-red-500 text-center text-xs p-2 border border-red-500">
+                    💥 系統攔截到錯誤：<br>${errorMsg}
+                </div>`;
+            } finally {
+                loadingBar.classList.add('hidden');
+                generateBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
