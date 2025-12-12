@@ -123,4 +123,11 @@
                 outputArea.classList.remove('hidden');
                 outputArea.innerHTML = `<div class="text-red-500 text-center text-xs p-2 border border-red-500">系統錯誤：${errorMsg}</div>`;
             } finally {
-                loadingBar.class
+                loadingBar.classList.add('hidden');
+                generateBtn.disabled = false;
+                generateBtn.innerText = "INITIATE GENERATION";
+            }
+        }
+    </script>
+</body>
+</html>
