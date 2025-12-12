@@ -33,16 +33,14 @@
 <body class="bg-gray-900 text-green-400 min-h-screen flex items-center justify-center p-4 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
 
     <div class="max-w-md w-full bg-black bg-opacity-90 p-6 rounded-lg cyber-border relative">
-        <!-- 裝飾元素 -->
         <div class="absolute top-0 left-0 w-2 h-2 bg-green-500"></div>
         <div class="absolute top-0 right-0 w-2 h-2 bg-green-500"></div>
         <div class="absolute bottom-0 left-0 w-2 h-2 bg-green-500"></div>
         <div class="absolute bottom-0 right-0 w-2 h-2 bg-green-500"></div>
 
         <h1 class="text-2xl font-bold text-center mb-2 tracking-widest text-green-300">VIRAL HOOK GEN</h1>
-        <p class="text-xs text-center text-green-700 mb-6">SYSTEM STATUS: ONLINE // VER 1.0</p>
+        <p class="text-xs text-center text-green-700 mb-6">SYSTEM STATUS: ONLINE // VER 1.1</p>
 
-        <!-- 輸入區 -->
         <div class="space-y-4">
             <div>
                 <label class="block text-xs mb-1 opacity-70">TARGET TOPIC [輸入主題]</label>
@@ -65,18 +63,13 @@
             </button>
         </div>
 
-        <!-- 讀取條 -->
         <div id="loadingBar" class="hidden mt-4">
             <p class="text-xs text-center mb-1 animate-pulse">PROCESSING DATA...</p>
             <div class="loading-scan"></div>
         </div>
 
-        <!-- 輸出區 -->
-        <div id="outputArea" class="mt-6 space-y-3 hidden">
-            <!-- 結果會動態插入這裡 -->
-        </div>
+        <div id="outputArea" class="mt-6 space-y-3 hidden"></div>
         
-        <!-- 底部版權/導購 -->
         <div class="mt-8 pt-4 border-t border-green-900 text-center text-xs text-green-600">
             <p>POWERED BY GEMINI-1.5-FLASH</p>
         </div>
@@ -85,12 +78,14 @@
     <script type="module">
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // ✅ API KEY 已填入
+        // ✅ 您的 Key 已填入
         const API_KEY = 'AIzaSyB1U0Lgmu37CbBs990Fueu2Hn7tak3Mcq8'; 
 
         const genAI = new GoogleGenerativeAI(API_KEY);
-        // 使用 gemini-1.5-flash 模型，速度快且免費額度高
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        
+        // 🔧 修正點：使用完整的模型名稱 (加上 -001)
+        // 如果 -001 還是不行，請改用 "gemini-pro"
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
         const generateBtn = document.getElementById('generateBtn');
         const topicInput = document.getElementById('topicInput');
@@ -103,11 +98,10 @@
             const tone = toneSelect.value;
 
             if (!topic) {
-                alert('⚠️ ERROR: TOPIC REQUIRED [請輸入主題]');
+                alert('⚠️ ERROR: 請輸入主題');
                 return;
             }
 
-            // UI 狀態切換
             loadingBar.classList.remove('hidden');
             outputArea.classList.add('hidden');
             outputArea.innerHTML = '';
@@ -115,32 +109,25 @@
             generateBtn.innerText = "CALCULATING...";
 
             try {
-                // 調整 Prompt 以獲得更好的 Threads 風格
                 const prompt = `你是一個 Threads 社交平台爆款文案專家。
                 請針對主題「${topic}」，用「${tone}」的語氣，生成 3 個極具吸引力、讓人忍不住點開全文的「第一句話」(Hook)。
-                
-                特徵要求：
-                1. 繁體中文（台灣用語）。
-                2. 簡短有力，不超過 40 字。
-                3. 有話顯得沒說完，或者反常識，引發好奇心。
-                4. 直接給我 3 個句子，每句一行，不要有 1. 2. 3. 編號，不要有引號。`;
+                要求：繁體中文、簡短有力、反常識、引發好奇心。直接給 3 句，不要編號，不要引號。`;
 
                 const result = await model.generateContent(prompt);
                 const response = await result.response;
                 const text = response.text();
                 
-                // 處理回傳文字，確保格式正確
                 const hooks = text.split('\n').filter(line => line.trim() !== '');
-
                 renderHooks(hooks);
 
             } catch (error) {
                 console.error("API Error:", error);
-                // 錯誤訊息顯示
+                
+                // 顯示錯誤給使用者
                 outputArea.innerHTML = `
                     <div class="text-red-500 border border-red-500 p-2 text-center text-xs">
-                        SYSTEM FAILURE: API ERROR<br>
-                        (可能是 Key 額度不足或網路問題)
+                        SYSTEM FAILURE: ${error.message || 'Unknown Error'}<br>
+                        請確認您的 Key 權限或網路狀態
                     </div>`;
                 outputArea.classList.remove('hidden');
             } finally {
@@ -152,11 +139,9 @@
 
         function renderHooks(hooks) {
             outputArea.classList.remove('hidden');
-            // 只取前三個，避免空行
             hooks.slice(0, 3).forEach(hook => {
                 const div = document.createElement('div');
                 div.className = "bg-green-900 bg-opacity-20 border border-green-800 p-3 rounded flex justify-between items-center group hover:bg-opacity-40 transition-all";
-                
                 div.innerHTML = `
                     <span class="text-sm flex-1 mr-2 tracking-wide">${hook}</span>
                     <button class="copy-btn text-xs bg-black border border-green-600 px-2 py-1 rounded hover:bg-green-600 hover:text-black transition-colors" onclick="copyToClipboard(this, '${hook.replace(/'/g, "\\'")}')">
@@ -167,7 +152,6 @@
             });
         }
 
-        // 全域函數供 HTML onclick 使用
         window.copyToClipboard = (btn, text) => {
             navigator.clipboard.writeText(text).then(() => {
                 const originalText = btn.innerText;
